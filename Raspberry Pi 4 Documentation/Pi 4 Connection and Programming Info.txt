@@ -1,0 +1,10 @@
+When connected to UF eduroam:
+
+	10.136.48.210 - IP of Pi #1
+	10.136.13.59 - IP of Pi #2
+
+"sudo ./ProgramName" - Run program (exclude the "")
+
+"ctrl + c" in terminal - Kill running program (exclude the "")
+
+Working directory is on the desktop in IEEE Code folder
