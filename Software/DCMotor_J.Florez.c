@@ -147,7 +147,9 @@ int intake_function(int position, int move) {
         move_dc_motor(3, position, 0);
     }
 }
-int lawnmower_path(){
+
+
+int lawnmower_path(){ //Needs major work
         //foward
         move_function(45, 1);
         sleep(1);
@@ -196,7 +198,7 @@ int main() {
     printf("Running main.\n");
 
     //------------------------ START OF CODE ------------------------
-    
+    // Set GPIOs
     gpioSetPWMfrequency(PWM1_L, 1000);
     gpioSetPWMfrequency(PWM2_L, 1000);
     gpioSetMode(PWM1_L, PI_OUTPUT);
@@ -216,6 +218,11 @@ int main() {
     gpioSetPWMfrequency(PWM2_F, 1000);
     gpioSetMode(PWM1_F, PI_OUTPUT);
     gpioSetMode(PWM2_F, PI_OUTPUT);
+
+/* Order of Robot Path? --List Below
+1. ________________
+.............
+*/
 
     /*
     //front intake
