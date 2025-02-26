@@ -121,7 +121,7 @@ int move_function(int position, char move)
         move_dc_motor('L', position, 'R');
         move_dc_motor('R', position, 'R');
     }
-    //ROTATE FUNCTIONS??? (To be done)
+    //ROTATE FUNCTIONS 
     //rotate right
     else if (move == 'R'){
         move_dc_motor('L', position, 'F');
@@ -221,18 +221,22 @@ int main() {
     sleep(1);
     */
 
-    move_function(40, 'B');
-    sleep(0.5);
-    move_function(50, 'S');
-    sleep(0.5);
-    move_function(50, 'R');
-    sleep(0.5);
+    move_function(25, 'B');
+    sleep(1);
     move_function(50, 'S');
     sleep(1);
-    move_function(30, 'F');
-    sleep(0.5);
+    move_function(43, 'R');
+    sleep(1);
     move_function(50, 'S');
-    sleep(0.5);
+    sleep(1);
+    move_function(40, 'F');
+    sleep(1);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(43, 'R');
+    sleep(1);
+    move_function(50, 'S');
+    sleep(1);
 
 
     //------------------------- END OF CODE -------------------------
