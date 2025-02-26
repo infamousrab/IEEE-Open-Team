@@ -58,7 +58,7 @@ int PWM2_F = 11;
 //************************************************** STRUCTURES **************************************************
 //*************************************************** FUNCTIONS **************************************************
 
-int move_dc_motor(int PWM, int position, int output) {
+int move_dc_motor(char PWM, int position, char output) {
     int PWM1, PWM2;
     if (position < 0 || position > 100) {
         printf("Position out of range\n");
@@ -66,37 +66,37 @@ int move_dc_motor(int PWM, int position, int output) {
     }
     position = (255*position / 100);
 
-    if (PWM == 0){  //Set PWM to left motor
+    if (PWM == 'L'){  //Set PWM to left motor
         PWM1 = PWM1_L;  
         PWM2 = PWM2_L;
     }
-    else if (PWM == 1){ //Set PWM to right motor
+    else if (PWM == 'R'){ //Set PWM to right motor
         PWM1 = PWM1_R;
         PWM2 = PWM2_R;
     }
-    else if (PWM == 2){ //Set PWM to front intake
+    else if (PWM == 'F'){ //Set PWM to front intake
         PWM1 = PWM1_F;
         PWM2 = PWM2_F;
     }
-    else if (PWM == 3){ //Set PWM to cube pickup
+    else if (PWM == 'C'){ //Set PWM to cube pickup
         PWM1 = PWM1_C;
         PWM2 = PWM2_C;
     }
 
     //reverse
-    if (output == -1) {
+    if (output == 'R') {
         gpioPWM(PWM1, position);
         gpioWrite(PWM2, 0);
     }
 
     // forward
-    else if (output == 1) {
+    else if (output == 'F') {
         gpioWrite(PWM1, 0);
         gpioPWM(PWM2, position);
     }
 
     //brake 
-    else if (output == 0) {
+    else if (output == 'B') {
         gpioWrite(PWM1, 0);
         gpioWrite(PWM2, 0);
     }
@@ -104,84 +104,77 @@ int move_dc_motor(int PWM, int position, int output) {
 
 }
 
-int move_function(int position, int move)
+int move_function(int position, char move)
 {
     //FULL FORWARD
-    if (move == 1){
-        move_dc_motor(0, position, 1);
-        move_dc_motor(1, position, 1);
+    if (move == 'F'){
+        move_dc_motor('L', position, 'F');
+        move_dc_motor('R', position, 'F');
     }
     //FULL BRAKE
-    else if (move == 0){
-        move_dc_motor(0, position, 0);
-        move_dc_motor(1, position, 0);
+    else if (move == 'S'){
+        move_dc_motor('L', position, 'B');
+        move_dc_motor('R', position, 'B');
     }
     //FULL REVERSE
-    else if (move == -1){
-        move_dc_motor(0, position, -1);
-        move_dc_motor(1, position, -1);
+    else if (move == 'B'){
+        move_dc_motor('L', position, 'R');
+        move_dc_motor('R', position, 'R');
     }
     //ROTATE FUNCTIONS??? (To be done)
     //rotate right
-    else if (move == 2){
-        move_dc_motor(0, position, 1);
-        move_dc_motor(1, position, -1);
+    else if (move == 'R'){
+        move_dc_motor('L', position, 'F');
+        move_dc_motor('R', position, 'R');
     }
     //rotate left
-    else if(move == -2){
-        move_dc_motor(0, position, -1);
-        move_dc_motor(1, position, 1);
+    else if(move == 'L'){
+        move_dc_motor('L', position, 'R');
+        move_dc_motor('R', position, 'L');
     }
 }
 int intake_function(int position, int move) {
-    if (move == 10) {
-        move_dc_motor(2, position, -1);
+    if (move == 10) {   
+        move_dc_motor('F', position, 'R');
     } else if (move == -10) {
-        move_dc_motor(2, position, 0);
+        move_dc_motor('F', position, 'B');
     }
      else if (move == 20) {
-        move_dc_motor(3, position, 1);  //bin pickup?
+        move_dc_motor('C', position, 'F');  //bin pickup?
     } else if (move == -20) {
-        move_dc_motor(3, position, -1);
+        move_dc_motor('C', position, 'R');
     } else if (move == -21) {
-        move_dc_motor(3, position, 0);
+        move_dc_motor('C', position, 'B');
     }
 }
+int beacon_positioning(){
 
-
-int lawnmower_path(){ //Needs major work
+}
+int lawnmower_path(){
         //foward
         move_function(45, 1);
         sleep(1);
-
         //brake
         move_function(50, 0);
         sleep(1);
-
         //rotate left
         move_function(30, -2);
         sleep(1);
-
         //brake
         move_function(50, 0);
         sleep(1);
-
         //foward
         move_function(20, 1);
         sleep(1);
-
         //brake
         move_function(50, 0);
         sleep(1);
-
         //rotate left
         move_function(30, -2);
         sleep(1);
-
         //brake
         move_function(50, 0);
-        sleep(1);
-        
+        sleep(1); 
 
 }
 
@@ -198,7 +191,7 @@ int main() {
     printf("Running main.\n");
 
     //------------------------ START OF CODE ------------------------
-    // Set GPIOs
+    
     gpioSetPWMfrequency(PWM1_L, 1000);
     gpioSetPWMfrequency(PWM2_L, 1000);
     gpioSetMode(PWM1_L, PI_OUTPUT);
@@ -219,11 +212,6 @@ int main() {
     gpioSetMode(PWM1_F, PI_OUTPUT);
     gpioSetMode(PWM2_F, PI_OUTPUT);
 
-/* Order of Robot Path? --List Below
-1. ________________
-.............
-*/
-
     /*
     //front intake
     intake_function(50, 10);
@@ -233,8 +221,18 @@ int main() {
     sleep(1);
     */
 
-    lawnmower_path();
+    move_function(40, 'B');
+    sleep(0.5);
+    move_function(50, 'S');
+    sleep(0.5);
+    move_function(50, 'R');
+    sleep(0.5);
+    move_function(50, 'S');
     sleep(1);
+    move_function(30, 'F');
+    sleep(0.5);
+    move_function(50, 'S');
+    sleep(0.5);
 
 
     //------------------------- END OF CODE -------------------------
