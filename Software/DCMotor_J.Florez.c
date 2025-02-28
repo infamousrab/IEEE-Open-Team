@@ -82,19 +82,16 @@ int move_dc_motor(char PWM, int position, char output) {
         PWM1 = PWM1_C;
         PWM2 = PWM2_C;
     }
-
     //reverse
     if (output == 'R') {
         gpioPWM(PWM1, position);
         gpioWrite(PWM2, 0);
     }
-
     // forward
     else if (output == 'F') {
         gpioWrite(PWM1, 0);
         gpioPWM(PWM2, position);
     }
-
     //brake 
     else if (output == 'B') {
         gpioWrite(PWM1, 0);
@@ -104,7 +101,7 @@ int move_dc_motor(char PWM, int position, char output) {
 
 }
 
-int move_function(int position, char move)
+void move_function(int position, char move)
 {
     //FULL FORWARD
     if (move == 'F'){
@@ -130,27 +127,64 @@ int move_function(int position, char move)
     //rotate left
     else if(move == 'L'){
         move_dc_motor('L', position, 'R');
-        move_dc_motor('R', position, 'L');
+        move_dc_motor('R', position, 'F');
     }
 }
-int intake_function(int position, int move) {
-    if (move == 10) {   
-        move_dc_motor('F', position, 'R');
-    } else if (move == -10) {
-        move_dc_motor('F', position, 'B');
+void intake_functions(int position, char move) {
+    if (move == 'F') {  
+        move_dc_motor('F', position, 'R'); //Front intake
+
+    } else if (move == 'N') {
+        move_dc_motor('F', position, 'B'); //Front intake STOP
     }
-     else if (move == 20) {
-        move_dc_motor('C', position, 'F');  //bin pickup?
-    } else if (move == -20) {
+     else if (move == 'O') { //BIN PICKUP OPEN
+        move_dc_motor('C', position, 'F');  
+
+    } else if (move == 'C') { //BIN PICKUP CLOSE
         move_dc_motor('C', position, 'R');
-    } else if (move == -21) {
+
+    } else if (move == 'S') { //BIN PICKUP STOP
         move_dc_motor('C', position, 'B');
     }
 }
-int beacon_positioning(){
+void beacon_positioning(){ //Functioning (Hard-coded)
+    move_function(24, 'B');
+    usleep(450000);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(44, 'R');
+    usleep(1000000);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(15, 'F');
+    usleep(4000000);
+    move_function(50, 'S');
+    sleep(2);
+    move_function(46, 'R');
+    usleep(1100000);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(19, 'F');
+    usleep(1200000);            //may need slight adjusting
+    move_function(50, 'S');
+    sleep(1);
+}
+void cube_pickups(){ //In-progress
+    move_function(20, 'B');
+    usleep(900000);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(54, 'L');
+    usleep(11000000);
+    move_function(50, 'S');
+    sleep(1);
+    move_function(20, 'B');
+    usleep(3300000);
+    move_function(50, 'S');
+    sleep(1);
 
 }
-int lawnmower_path(){
+void lawnmower_path(){ //In progress
         //foward
         move_function(45, 1);
         sleep(1);
@@ -175,10 +209,13 @@ int lawnmower_path(){
         //brake
         move_function(50, 0);
         sleep(1); 
+}
+void lawnmower_path_cave(){   //Not Started
+   
+}
+void bin_dropoff(){           //Not started (Need camera stuff)
 
 }
-
-
 //*************************************************** FUNCTIONS **************************************************
 
 int main() {
@@ -210,34 +247,14 @@ int main() {
     gpioSetPWMfrequency(PWM1_F, 1000);
     gpioSetPWMfrequency(PWM2_F, 1000);
     gpioSetMode(PWM1_F, PI_OUTPUT);
-    gpioSetMode(PWM2_F, PI_OUTPUT);
-
-    /*
-    //front intake
-    intake_function(50, 10);
+    gpioSetMode(PWM2_F, PI_OUTPUT);   
+    
+    intake_functions(50, 'O');
     sleep(1);
-    //front intake stop
-    intake_function(50, -10);
+    intake_functions(50, 'S');
     sleep(1);
-    */
-
-    move_function(25, 'B');
-    sleep(1);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(43, 'R');
-    sleep(1);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(40, 'F');
-    sleep(1);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(43, 'R');
-    sleep(1);
-    move_function(50, 'S');
-    sleep(1);
-
+    beacon_positioning();
+    cube_pickups();
 
     //------------------------- END OF CODE -------------------------
 

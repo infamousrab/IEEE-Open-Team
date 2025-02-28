@@ -77,10 +77,10 @@ int main() {
     gpioSetMode(DIR_PIN, PI_OUTPUT);
 
     //test (is 0 or 1 foward????)
-
-    stepMotor(400, 1); // Move 1 full turn (LEFT->DOWN)
+ 
+    //stepMotor(200, 1); // Move 1 full turn (LEFT->DOWN)
     sleep(1);
-    stepMotor(400, 0); // Move 1 full turn (RIGHT->UP)
+    stepMotor(200, 0); // Move 1 full turn (RIGHT->UP)
     sleep(1);
     //------------------------- END OF CODE -------------------------
 
