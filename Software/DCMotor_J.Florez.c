@@ -238,7 +238,7 @@ int main() {
     gpioSetPWMfrequency(PWM2_R, 1000);
     gpioSetMode(PWM1_R, PI_OUTPUT);
     gpioSetMode(PWM2_R, PI_OUTPUT);
-
+    
     gpioSetPWMfrequency(PWM1_C, 1000);
     gpioSetPWMfrequency(PWM2_C, 1000);
     gpioSetMode(PWM1_C, PI_OUTPUT);
