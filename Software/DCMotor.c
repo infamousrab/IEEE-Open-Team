@@ -1,14 +1,11 @@
-
 //*************************************************** INCLUDES ***************************************************
-
 #include <stdio.h>        // Standard Input/Output functions
 #include <pigpio.h>      // Raspberry Pi GPIO control library
 #include <unistd.h>      // Provides access to the POSIX operating system API
 #include <math.h>        // Math library for advanced mathematical functions
-
+#include <signal.h>
 //*************************************************** INCLUDES ***************************************************
 //*********************************************** GLOBAL VARIABLES ***********************************************
-
 //left dc motor
 int PWM1_L = 13;
 int PWM2_L = 19;
@@ -21,30 +18,21 @@ int PWM2_C = 10;
 //front intake motor
 int PWM1_F = 26;
 int PWM2_F = 11;
-
 // encoder gpios 
 int ENCA_L = 14;
 int ENCB_L = 15;
 int ENCA_R = 24;
 int ENCB_R = 25;
-
 // encoder/wheel variables 
 float CPR = 600; // encoder counts per revolution 
 float wheel_diameter = 3.14961;
-
+float PI = 3.14159265;
+//global enc count variables
 volatile int enc_r_count = 0;
 volatile int enc_l_count = 0;
-
-char motor_state; 
-
+char motor_state;
 //*********************************************** GLOBAL VARIABLES ***********************************************
-//************************************************** STRUCTURES **************************************************
-
-
-
-//************************************************** STRUCTURES **************************************************
 //*************************************************** FUNCTIONS **************************************************
-
 // encoder callbacks that are passed the gpio, new level, and tick 
 void enc_l_callback (int gpio, int level, uint32_t tick) {
     if (motor_state == 'f') {
@@ -55,7 +43,6 @@ void enc_l_callback (int gpio, int level, uint32_t tick) {
     }
     printf("%d\n", enc_l_count); 
 }
-
 void enc_r_callback (int gpio, int level, uint32_t tick) {
     if (motor_state == 'f') {
         enc_r_count += 1;
@@ -65,15 +52,12 @@ void enc_r_callback (int gpio, int level, uint32_t tick) {
     }
     printf("%d\n", enc_r_count); 
 }
-
-int move_dc_motor(char PWM, int position, char output) {
+void move_dc_motor(char PWM, int position, char output) {
     int PWM1, PWM2;
-    if (position < 0 || position > 100) {
-        printf("Position out of range\n");
-        return 1; 
-    }
     position = (255*position / 100);
-
+    if (position < 0 || position > 100) {
+        printf("Position out of range\n"); 
+    }
     if (PWM == 'L'){  //Set PWM to left motor
         PWM1 = PWM1_L;  
         PWM2 = PWM2_L;
@@ -139,9 +123,43 @@ void move_function(int position, char move)
     }
 }
 
-float distance_travelled_r() {
-    return enc_r_count * 3.14159 * wheel_diameter / CPR; 
+void intake_functions(int position, char move) {
+    if (move == 'F') {  
+        move_dc_motor('F', position, 'R'); //Front intake
+
+    } else if (move == 'N') {
+        move_dc_motor('F', position, 'B'); //Front intake STOP
+    }
+     else if (move == 'O') { //BIN PICKUP OPEN
+        move_dc_motor('C', position, 'F');  
+
+    } else if (move == 'C') { //BIN PICKUP CLOSE
+        move_dc_motor('C', position, 'R');
+
+    } else if (move == 'S') { //BIN PICKUP STOP
+        move_dc_motor('C', position, 'B');
+    }
 }
+
+float distance_travelled_r() {
+    return enc_r_count * PI * wheel_diameter / CPR; 
+}
+
+float distance_travelled_l() {
+    return enc_l_count * PI * wheel_diameter / CPR;
+}
+
+/*
+void cleanup(int signum) {
+    int i;
+    for (i = 12; i < 19; i+6) { // GPIO 2 to 27
+        gpioSetMode(i, PI_OUTPUT);
+        gpioWrite(i, 0);
+    }
+    gpioTerminate();
+    exit(0);
+}
+*/
 
 //*************************************************** FUNCTIONS **************************************************
 
@@ -151,28 +169,45 @@ int main() {
         fprintf(stderr, "Failed to initialize pigpio\n");
         return 1;
     }
-
     printf("Running main.\n");
 
+    /*
+    signal(SIGINT, cleanup);  // Catch CTRL+C
+    signal(SIGTERM, cleanup);
+    */
+
     //------------------------ START OF CODE ------------------------
+    //Set GPIOs
     gpioSetMode(ENCA_L, PI_INPUT);
     gpioSetMode(ENCB_L, PI_INPUT); 
     gpioSetMode(ENCA_R, PI_INPUT); 
     gpioSetMode(ENCB_R, PI_INPUT); 
-    
-    motor_state = 'f'; 
+    gpioSetPWMfrequency(PWM1_L, 1000);
+    gpioSetPWMfrequency(PWM2_L, 1000);
+    gpioSetMode(PWM1_L, PI_OUTPUT);
+    gpioSetMode(PWM2_L, PI_OUTPUT);
+    gpioSetPWMfrequency(PWM1_R, 1000);
+    gpioSetPWMfrequency(PWM2_R, 1000);
+    gpioSetMode(PWM1_R, PI_OUTPUT);
+    gpioSetMode(PWM2_R, PI_OUTPUT);
+    gpioSetPWMfrequency(PWM1_C, 1000);
+    gpioSetPWMfrequency(PWM2_C, 1000);
+    gpioSetMode(PWM1_C, PI_OUTPUT);
+    gpioSetMode(PWM2_C, PI_OUTPUT);
+    gpioSetPWMfrequency(PWM1_F, 1000);
+    gpioSetPWMfrequency(PWM2_F, 1000);
+    gpioSetMode(PWM1_F, PI_OUTPUT);
+    gpioSetMode(PWM2_F, PI_OUTPUT); 
 
+    //Encoder Callback functions
     gpioSetAlertFunc(ENCA_R, enc_r_callback);
-    gpioSetAlertFunc(ENCB_R, enc_r_callback);
-    
-    sleep(10);
-    printf("%f", distance_travelled_r()); 
-    
-    //------------------------- END OF CODE -------------------------
+    gpioSetAlertFunc(ENCA_L, enc_l_callback); 
 
+    printf("Right wheel distance: %f\n", distance_travelled_r()); 
+    printf("Left wheel distance: %f\n", distance_travelled_l());
+    //------------------------- END OF CODE -------------------------
     // Necessary library termination
     printf("Terminating main.\n");
     gpioTerminate();
-
     return 0;
 }
