@@ -6,6 +6,12 @@
 #include <signal.h>
 //*************************************************** INCLUDES ***************************************************
 //*********************************************** GLOBAL VARIABLES ***********************************************
+#define MPU6500_I2C_ADDR 0b1101000 //1101000 if AD0 is OFF
+#define WHO_AM_I_REG 0x75
+#define ACCEL_XOUT_H 0x3B // high bit of acceleration in x 
+#define GYRO_ZOUT_L 0x48 // low bit of gyroscope output in z
+
+
 //left dc motor
 int PWM1_L = 13;
 int PWM2_L = 19;
@@ -31,6 +37,7 @@ float PI = 3.14159265;
 volatile int enc_r_count = 0;
 volatile int enc_l_count = 0;
 char motor_state;
+
 //*********************************************** GLOBAL VARIABLES ***********************************************
 //*************************************************** FUNCTIONS **************************************************
 // encoder callbacks that are passed the gpio, new level, and tick 
@@ -149,6 +156,19 @@ float distance_travelled_l() {
     return enc_l_count * PI * wheel_diameter / CPR;
 }
 
+void right_90deg(){
+    move_function(45, 'R');
+    sleep(1);
+    move_function(50, 'S');
+    sleep(1);
+}
+void left_90deg(){
+    move_function(50, 'L');
+    sleep(1);
+    move_function(50, 'S');
+    sleep(1);
+}
+
 /*
 void cleanup(int signum) {
     int i;
@@ -170,6 +190,12 @@ int main() {
         return 1;
     }
     printf("Running main.\n");
+
+    int i2c_handle;
+    i2c_handle = i2cOpen(1, MPU6500_I2C_ADDR, 0);
+    int who_am_i = i2cReadByteData(i2c_handle, WHO_AM_I_REG);
+    printf("WHO_AM_I Register: 0x%X\n", who_am_i);
+    
 
     /*
     signal(SIGINT, cleanup);  // Catch CTRL+C
@@ -202,6 +228,7 @@ int main() {
     //Encoder Callback functions
     gpioSetAlertFunc(ENCA_R, enc_r_callback);
     gpioSetAlertFunc(ENCA_L, enc_l_callback); 
+
 
     printf("Right wheel distance: %f\n", distance_travelled_r()); 
     printf("Left wheel distance: %f\n", distance_travelled_l());
