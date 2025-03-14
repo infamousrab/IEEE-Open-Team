@@ -13,11 +13,13 @@
 #define ACCEL_YOUT_REGH 0x3D
 #define ACCEL_ZOUT_REGH 0x3F
 #define GYRO_XOUT_REGH 0x43 // registers 43-48 output gyro data in xyz directions 
+#define GYRO_XOUT_REGL 0x44
 #define GYRO_YOUT_REGH 0x45
+#define GYRO_YOUT_REGL 0x46
 #define GYRO_ZOUT_REGH 0x47
+#define GYRO_ZOUT_REGL 0x48
 #define GYRO_CONFIG 0x1B
 #define ACCEL_CONFIG 0x1C
-
 
 
 //left dc motor
@@ -51,8 +53,8 @@ char motor_state;
 int i2c_handle;
 
 // sensitivity factors for accel and gyro as floats for proper float division later
-float accel_sens_factor = 16384; //units of LSB/g
-float gyro_sens_factor = 131; //units of LSB/(º/s)
+float accel_sens_factor = 16384.0; //units of LSB/g
+float gyro_sens_factor = 131.0; //units of LSB/(º/s)
 
 float accel_xout; 
 float accel_yout; 
@@ -63,7 +65,15 @@ float gyro_zout;
 
 float curr_robot_angle; 
 float prev_robot_angle; 
-float time_interval = 100; 
+float time_interval = 10; 
+
+//gyro calibration 
+float calc_gyro_offset; 
+float offset_sum = 0; 
+int sample_count = 0; 
+float gyro_x_offset = -3.515344; 
+float gyro_y_offset = 1.057338; 
+float gyro_z_offset = 2.086423; 
 
 //*********************************************** GLOBAL VARIABLES ***********************************************
 //*************************************************** FUNCTIONS **************************************************
@@ -211,16 +221,16 @@ void rotate_90_degrees(char direction) {
     // Right turn: Left wheel forward, right wheel backward
     if (direction == 'R') {
         while (abs(enc_l_count) < target_counts && abs(enc_r_count) < target_counts) {
-            move_dc_motor('L', 50, 'F');
-            move_dc_motor('R', 50, 'R');
+            move_dc_motor('L', 30, 'F');
+            move_dc_motor('R', 30, 'R');
             printf("Left: %d, Right: %d\n", enc_l_count, enc_r_count);
         }
     } 
     // Left turn: Right wheel forward, left wheel backward
     else if (direction == 'L') {
         while (abs(enc_l_count) < target_counts && abs(enc_r_count) < target_counts) {
-            move_dc_motor('R', 50, 'F');
-            move_dc_motor('L', 50, 'R');
+            move_dc_motor('R', 30, 'F');
+            move_dc_motor('L', 30, 'R');
             printf("Left: %d, Right: %d\n", enc_l_count, enc_r_count);
         }
     }
@@ -260,14 +270,15 @@ void set_accel_fsr (uint8_t afs_sel) {
     i2cWriteByteData(i2c_handle, ACCEL_CONFIG, config); 
 }
 
-// reads high and low byte of the register, merges, and returns 
-int16_t read_reg(int reg) {
-    int16_t high = i2cReadByteData(i2c_handle, reg); // high byte of reg
-    int16_t low = i2cReadByteData(i2c_handle, reg+1); //low byte of reg
+//merges high and low bytes of registers
+float get_imu_val(uint8_t high_byte, uint8_t low_byte, float sens_factor) {
 
-    // merge high and low to single number 
-    int16_t value = (high << 8) | low; 
-    return value; 
+    int16_t raw_value = (int16_t)((high_byte << 8) | low_byte);
+
+    //printf("High byte: %d, Low byte:%d\n", high_byte, low_byte); 
+    //printf("Raw gyro value %d\n\n", raw_value);  
+    return (float)raw_value/sens_factor; 
+    
 }
 
 void output_imu_data() {
@@ -278,25 +289,42 @@ void output_imu_data() {
 void read_imu_data () {
 
     // hopefully converts raw gyro data to reasonable values 
-    // increment registers by 2 to read each coordinate data value 
-    gyro_xout = read_reg(GYRO_XOUT_REGH)/gyro_sens_factor;
-    gyro_yout = read_reg(GYRO_YOUT_REGH)/gyro_sens_factor; 
-    gyro_zout = read_reg(GYRO_ZOUT_REGH)/gyro_sens_factor; 
+    uint8_t gyro_xout_h = i2cReadByteData(i2c_handle, GYRO_XOUT_REGH); 
+    uint8_t gyro_xout_l = i2cReadByteData(i2c_handle, GYRO_XOUT_REGL); 
+    
+    gyro_xout = get_imu_val(gyro_xout_h, gyro_xout_l, gyro_sens_factor); 
+    printf("Gyro_xout: %f\n", gyro_xout); 
 
+    
+    uint8_t gyro_yout_h = i2cReadByteData(i2c_handle, GYRO_YOUT_REGH); 
+    uint8_t gyro_yout_l = i2cReadByteData(i2c_handle, GYRO_YOUT_REGL); 
+
+    gyro_yout = get_imu_val(gyro_yout_h, gyro_yout_l, gyro_sens_factor); 
+    printf("Gyro_yout: %f\n", gyro_yout); 
+
+    uint8_t gyro_zout_h = i2cReadByteData(i2c_handle, GYRO_ZOUT_REGH); 
+    uint8_t gyro_zout_l = i2cReadByteData(i2c_handle, GYRO_ZOUT_REGL); 
+
+    gyro_zout = get_imu_val(gyro_zout_h, gyro_zout_l, gyro_sens_factor); 
+    printf("Gyro_zout: %f\n", gyro_zout); 
+    
+    /*
     //hopefully converts raw accelerator data to reasoanble values 
     accel_xout = read_reg(ACCEL_XOUT_REGH)/accel_sens_factor; 
     accel_yout = read_reg(ACCEL_YOUT_REGH)/accel_sens_factor; 
     accel_zout = read_reg(ACCEL_ZOUT_REGH)/accel_sens_factor; 
-
+    */
     //output_imu_data(); 
 
+    printf("previous robot angle: %f\n", prev_robot_angle); 
     // discrete integration on each callback 
-    curr_robot_angle = prev_robot_angle + (time_interval/1000)*gyro_xout;
+    curr_robot_angle = prev_robot_angle + (time_interval/1000.0)*(gyro_xout - gyro_x_offset);
     prev_robot_angle = curr_robot_angle; 
     printf("gyro_x: %f\n", gyro_xout); 
     printf("gyro_y: %f\n", gyro_yout);
     printf("gyro_z: %f\n", gyro_zout); 
     printf("robot angle: %f\n", curr_robot_angle);
+
 
 }
 
@@ -308,12 +336,58 @@ void robot_angle () {
     // callback to read all imu data while in function 
     gpioSetTimerFunc(0, time_interval, read_imu_data); 
       
-    sleep(5); 
+    sleep(10); 
     //rotate_90_degrees(direction); 
     //cancel timer at end of rotation 
-    gpioSetTimerFunc(0, 500, NULL); 
+    gpioSetTimerFunc(0, time_interval, NULL); 
 }
 
+// reading x gyro values and summing to calibrate the gyro 
+void read_gyro_x() {
+    uint8_t gyro_xout_h = i2cReadByteData(i2c_handle, GYRO_XOUT_REGH); 
+    uint8_t gyro_xout_l = i2cReadByteData(i2c_handle, GYRO_XOUT_REGL); 
+    
+    float gyro_xout = get_imu_val(gyro_xout_h, gyro_xout_l, gyro_sens_factor); 
+
+    offset_sum += gyro_xout;
+    sample_count += 1; 
+
+}
+
+// reading y gyro values and summing to calibrate the gyro 
+void read_gyro_y() {
+    uint8_t gyro_yout_h = i2cReadByteData(i2c_handle, GYRO_YOUT_REGH); 
+    uint8_t gyro_yout_l = i2cReadByteData(i2c_handle, GYRO_YOUT_REGL); 
+    
+    float gyro_yout = get_imu_val(gyro_yout_h, gyro_yout_l, gyro_sens_factor); 
+
+    offset_sum += gyro_yout;
+    sample_count += 1; 
+
+}
+
+// reading z gyro values and summing to calibrate the gyro 
+void read_gyro_z() {
+    uint8_t gyro_zout_h = i2cReadByteData(i2c_handle, GYRO_ZOUT_REGH); 
+    uint8_t gyro_zout_l = i2cReadByteData(i2c_handle, GYRO_ZOUT_REGL); 
+    
+    float gyro_yout = get_imu_val(gyro_zout_h, gyro_zout_l, gyro_sens_factor); 
+
+    offset_sum += gyro_yout;
+    sample_count += 1; 
+
+}
+
+// determine gyro offset by taking samples for 2 minutes 
+void calibrate_gyro() {
+    // determine gyro offset
+
+    gpioSetTimerFunc(0, 10, read_gyro_z); 
+
+    sleep(120); 
+
+    calc_gyro_offset = (float)offset_sum / sample_count;    
+}
 
 //*************************************************** FUNCTIONS **************************************************
 
@@ -325,6 +399,7 @@ int main() {
     }
     printf("Running main.\n");
 
+    // reading WHO_AM_I register
     i2c_handle = i2cOpen(1, MPU6500_I2C_ADDR, 0);
     int who_am_i = i2cReadByteData(i2c_handle, WHO_AM_I_REG);
     printf("WHO_AM_I Register: 0x%X\n", who_am_i);
@@ -363,11 +438,14 @@ int main() {
     set_accel_fsr(0b00); 
 
     //rotate_robot('R'); 
-    robot_angle(); 
- 
+    robot_angle();
+    
+    // gyro calibration
+    //calibrate_gyro(); 
+    //printf("Gyro offset x: %f\n", calc_gyro_offset); 
+
     printf("Right wheel distance: %f\n", distance_travelled_r()); 
     printf("Left wheel distance: %f\n", distance_travelled_l());
-    printf(" "); 
 
     //move_function(0, 'S'); 
 
