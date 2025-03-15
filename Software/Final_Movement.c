@@ -2,71 +2,25 @@
 #include <pigpio.h>      // Raspberry Pi GPIO control library
 #include <unistd.h>      // Provides access to the POSIX operating system API
 #include <math.h>        // Math library for advanced mathematical functions
-#include <DCMotor.h>    //DC Motor Movement functions
-#include <StepperMotor.h> //Stepper Motor Movement function
+#include <stdlib.h>      // Standard library
+#include <sys/time.h>   // Good library for accurate time (calculating delta t)
+#include <stdint.h>     // Standard int library
+#include "DCMotor.h"   //DC Motor Movement functions
+#include "StepperMotor.h" //Stepper Motor Movement function
 
-void beacon_positioning(){ //Functioning (Hard-coded)
-    move_function(24, 'B');
-    usleep(450000);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(44, 'R');
-    usleep(1000000);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(15, 'F');
-    usleep(4000000);
-    move_function(50, 'S');
-    sleep(2);
-    move_function(46, 'R');
-    usleep(1100000);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(19, 'F');
-    usleep(1200000);            //may need slight adjusting
-    move_function(50, 'S');
-    sleep(1);
+//include LED and April Tag detect C header files
+
+//Once LED is detected ON, begin all portions of Course
+
+void beacon_positioning(){ //In-progress (Hard-coded)
+
 }
 void cube_pickups(){ //In-progress
-    move_function(20, 'B');
-    usleep(900000);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(54, 'L');
-    usleep(11000000);
-    move_function(50, 'S');
-    sleep(1);
-    move_function(20, 'B');
-    usleep(3300000);
-    move_function(50, 'S');
-    sleep(1);
+  
 
 }
 void lawnmower_path(){ //In progress
-        //foward
-        move_function(45, 1);
-        sleep(1);
-        //brake
-        move_function(50, 0);
-        sleep(1);
-        //rotate left
-        move_function(30, -2);
-        sleep(1);
-        //brake
-        move_function(50, 0);
-        sleep(1);
-        //foward
-        move_function(20, 1);
-        sleep(1);
-        //brake
-        move_function(50, 0);
-        sleep(1);
-        //rotate left
-        move_function(30, -2);
-        sleep(1);
-        //brake
-        move_function(50, 0);
-        sleep(1); 
+
 }
 void lawnmower_path_cave(){   //Not Started
    

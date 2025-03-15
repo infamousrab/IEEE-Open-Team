@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "signal.h": "c",
-        "pigpio.h": "c"
+        "pigpio.h": "c",
+        "stdint.h": "c",
+        "time.h": "c",
+        "stdlib.h": "c",
+        "dcmotor.h": "c"
     }
 }

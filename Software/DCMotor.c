@@ -5,10 +5,13 @@
 #include <unistd.h>      // Provides access to the POSIX operating system API
 #include <math.h>        // Math library for advanced mathematical functions
 #include <signal.h>
+#include "IMU.c"
 //*************************************************** INCLUDES ***************************************************
 //*********************************************** GLOBAL VARIABLES ***********************************************
 #define MPU6500_I2C_ADDR 0b1101000 //1101000 if AD0 is OFF
 #define WHO_AM_I_REG 0x75
+#define GYRO_XOUT_REGH 0x43
+#define GYRO_XOUT_REGL 0x44
 
 //left dc motor
 int PWM1_L = 13;
@@ -36,6 +39,8 @@ float wheel_dist = 5.25;  // Distance between wheels
 volatile int enc_r_count = 0;
 volatile int enc_l_count = 0;
 int motor_state;
+//IMU stuff...
+
 //*********************************************** GLOBAL VARIABLES ***********************************************
 //*************************************************** FUNCTIONS **************************************************
 // encoder callbacks that are passed the gpio, new level, and tick 
@@ -151,14 +156,12 @@ void intake_functions(int position, char move) {
 float distance_travelled_r() {
     return enc_r_count * PI * wheel_diameter / CPR; 
 }
-
 float distance_travelled_l() {
     return enc_l_count * PI * wheel_diameter / CPR;
 }
 
-// Move a given distance (FOWARD OR BACKWARD, in inches) [FOR SOME REASON OFF BY 2 INCHES]
+// Move a given distance (FOWARD OR BACKWARD, in inches) [Precise, but has some OFFSET]
 void move_distance(float target_distance, char direction) {
-
     enc_r_count = 0;
     enc_l_count = 0;
     // calculate target counts 
@@ -167,58 +170,41 @@ void move_distance(float target_distance, char direction) {
     // move  motors until the target distance is reached
     while (abs(enc_r_count) < target_counts && abs(enc_l_count) < target_counts) {
         if (direction == 'F') {
-            move_function(20, 'F');
+            move_function(22, 'F'); //Fine-tune from 20-25 [May need to up with bins attached!]
         } else if (direction == 'B') {
-            move_function(20, 'B'); 
-            
+            move_function(22, 'B'); 
         }
     }
     move_function(0, 'S');
 }
 
 void rotate_90_degrees(char direction) {
-    // Reset encoder counts
-    enc_r_count = 0;
-    enc_l_count = 0;
+    // Reset the gyro's current angle to 0
+    current_angle = 0.0;
+    gettimeofday(&prev_time, NULL);  //Reset time reference function
+    init_gyro();
+    // Calibrate gyro before starting rotation
+    calibrate_gyro(1000); 
+    
+    // keep read and update gyro current angle until 90 degrees is reached
+    //previous line: while (fabs(current_angle) < 90.0) {}; 
+    while (90.0 - fabs(current_angle) > 0.5) { 
+        update_angle();  // Update the current_angle using the gyro
+        usleep(10);    // Small delay to avoid excessive loop speed
 
-    float target_distance = (PI * wheel_dist)/4;
-    float target_counts = (target_distance * CPR) / (PI * wheel_diameter);
-
-    // Right turn: Left wheel forward, right wheel backward
-    if (direction == 'R') {
-        while (abs(enc_l_count) < target_counts) {
-            move_dc_motor('L', 30, 'F');
-            move_dc_motor('R', 30, 'R');
-            printf("Left: %d, Right: %d\n", enc_l_count, enc_r_count);
-        }
-    } 
-    // Left turn: Right wheel forward, left wheel backward
-    else if (direction == 'L') {
-        while (abs(enc_r_count) < target_counts) {
-            move_dc_motor('R', 30, 'F');
-            move_dc_motor('L', 30, 'R');
-            printf("Left: %d, Right: %d\n", enc_l_count, enc_r_count);
+        if (direction == 'R') {
+            move_dc_motor('L', 60, 'F'); //40 PWM is most accurate, but DOESNT STAY IN PLACE
+            move_dc_motor('R', 40, 'R'); 
+        } 
+        else if (direction == 'L') {
+            move_dc_motor('R', 55, 'F');
+            move_dc_motor('L', 55 , 'R'); 
         }
     }
-    move_function(50, 'S'); // Stop the motors
-}
-
-void right_90deg(){
-    sleep(1);
-    move_function(45, 'R');
-    sleep(1);
-    move_function(45, 'S');
-    sleep(1);
-
-}
-void left_90deg(){
-    sleep(1);
-    move_function(45, 'R');
-    sleep(1);
-    move_function(45, 'S');
-    sleep(1);
-}
-
+    // stop the motors once 90 is reached
+    move_function(50, 'S'); 
+    cleanup();
+} 
 
 //*************************************************** FUNCTIONS **************************************************
 
@@ -229,11 +215,13 @@ int main() {
         return 1;
     }
     printf("Running main.\n");
-
+    
+    /* 
     int i2c_handle;
     i2c_handle = i2cOpen(1, MPU6500_I2C_ADDR, 0);
     int who_am_i = i2cReadByteData(i2c_handle, WHO_AM_I_REG);
-    printf("WHO_AM_I Register: 0x%X\n", who_am_i);
+    printf("WHO_AM_I Register: 0x%X\n", who_am_i); //IMU TEST
+    */
     
     //------------------------ START OF CODE ------------------------
     //Set GPIOs
@@ -261,19 +249,18 @@ int main() {
     //Encoder Callback functions
     gpioSetAlertFunc(ENCA_L, enc_l_callback); 
     gpioSetAlertFunc(ENCA_R, enc_r_callback);
-    move_distance(4, 'F');
-    sleep(1);
-    right_90deg();
 
-    //move_distance(25, 'F');
-    sleep(1);
+    //Move forward 12 in test
+    move_distance(12, 'F');
 
+    //ROTATE TEST
+    //rotate_90_degrees('L');
+    sleep(1);
 
 
     printf("Right wheel distance: %f\n", distance_travelled_r()); 
     printf("Left wheel distance: %f\n", distance_travelled_l());
     
-
     //------------------------- END OF CODE -------------------------
     // Necessary library termination
     printf("Terminating main.\n");

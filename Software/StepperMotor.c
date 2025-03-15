@@ -30,9 +30,9 @@ int main() {
     //------------------------ START OF CODE ------------------------
     gpioSetMode(STEP_PIN, PI_OUTPUT);
     gpioSetMode(DIR_PIN, PI_OUTPUT);
-    //stepMotor(200, 1); // Move 1 full turn (LEFT->DOWN)
+    //stepMotor(600, 1); // Move 1 full turn (LEFT->DOWN)
     sleep(1);
-    stepMotor(200, 0); // Move 1 full turn (RIGHT->UP)
+    stepMotor(600, 0); // Move 1 full turn (RIGHT->UP)
     sleep(1);
     //------------------------- END OF CODE -------------------------
     // Necessary library termination
