@@ -5,6 +5,7 @@
         "stdint.h": "c",
         "time.h": "c",
         "stdlib.h": "c",
-        "dcmotor.h": "c"
+        "dcmotor.h": "c",
+        "iostream": "cpp"
     }
 }

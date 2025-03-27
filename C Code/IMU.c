@@ -18,6 +18,7 @@ struct timeval prev_time; //struct used to get accurate time back (both tv.sec a
 // PID globals 
 float pid_error = 0.0; 
 float prev_pid_error = 0.0;
+float pid_integral = 0.0;
 
 // Initializes i2c and pigpio (i2c wont work without pigpio)
 void init_gyro() {
@@ -69,9 +70,8 @@ void update_angle() {
 // PID controller to provide PWM values to the motors for accurate rotation 
 float rotate_PID_compute (double Kp, double Ki, double Kd, double set_angle, double dt) {
     pid_error = set_angle - current_angle; 
- 
-    float pid_integral;
     pid_integral += pid_error * dt; 
+    
     // output = Kp * error + Ki * integral + Kd * derivative
     float output = Kp*pid_error + Ki*pid_integral + Kd*(pid_error - prev_pid_error)/dt;  
 
@@ -79,10 +79,10 @@ float rotate_PID_compute (double Kp, double Ki, double Kd, double set_angle, dou
     prev_pid_error = pid_error;
     
     // set maxs and mins on output speeds
-    if (output > 80.0) {
-        output = 80.0;
+    if (fabs(output) > 60.0) {
+        output = 60.0;
     }
-    if (output < 35.0) {
+    if (fabs(output) < 35.0) {
         output = 35.0; 
     }
     return output;
